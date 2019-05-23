@@ -2,10 +2,10 @@
 https://medium.freecodecamp.org/multi-class-classification-with-sci-kit-learn-xgboost-a-case-study-using-brainwave-data-363d7fca5f69
 
 '''
-
 #%%
 import pandas as pd
 import os
+import time
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.pipeline import Pipeline
@@ -32,11 +32,12 @@ plt.xlabel('Class Label', fontsize=16)
 plt.xticks(rotation='vertical');
 
 #%%
+# Save and remove lable form data frame
 label_df = brainwave_df['label']
 brainwave_df.drop('label', axis = 1, inplace=True)
 brainwave_df.head()
 #%%
-'''
+''' Method 
 We will use a ‘cross validation’ (in our case will use 10 fold cross validation) approach over 
 the dataset and take average accuracy. This will give us a holistic view of the classifier’s accuracy.
 
@@ -47,22 +48,32 @@ By this, all stages become re-usable and can be put in forming other ‘pipeline
 #%%
 ''' RandomForest Classifier '''
 
+start = time.time()
 pl_random_forest = Pipeline(steps=[('random_forest', RandomForestClassifier(n_estimators=10))])
 scores = cross_val_score(pl_random_forest, brainwave_df, label_df, cv=10,scoring='accuracy')
-print('Accuracy for RandomForest : ', scores.mean())
+
+print('Accuracy for RandomForest : ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
+# Takes about 5 seconds
 
 #%%
 ''' Logistic Regression Classifier '''
 
+start = time.time()
 pl_log_reg = Pipeline(steps=[('scaler',StandardScaler()),
                              ('log_reg', LogisticRegression(multi_class='multinomial', solver='saga', max_iter=400, tol=0.01))])
 scores = cross_val_score(pl_log_reg, brainwave_df, label_df, cv=10,scoring='accuracy')
-print('Accuracy for Logistic Regression: ', scores.mean())
 
+print('Accuracy for Logistic Regression: ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
 # Takes about 2 minutes
 
 #%%
 ''' Principal Component Analysis (PCA) '''
+
+start = time.time()
 scaler = StandardScaler()
 scaled_df = scaler.fit_transform(brainwave_df)
 
@@ -70,6 +81,9 @@ pca = PCA(n_components = 20)
 pca_vectors = pca.fit_transform(scaled_df)
 for index, var in enumerate(pca.explained_variance_ratio_):
     print("Explained Variance ratio by Principal Component ", (index+1), " : ", round(var*1000)/1000)
+
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
 
 #%%
 # Plot the first two principle components
@@ -89,29 +103,42 @@ separate out ‘NEUTRAL’ cases from other two cases and the second classifier 
 separate out ‘POSITIVE’ & ‘NEGATIVE’ cases (as there will be two internal logistic 
 classifiers for 3-class problem). Let’s try and see the accuracy.
 '''
+
+start = time.time()
 pl_log_reg_pca_2 = Pipeline(steps=[('scaler',StandardScaler()),
                              ('pca', PCA(n_components = 2)),
                              ('log_reg', LogisticRegression(multi_class='multinomial', solver='saga', max_iter=400, tol=0.001))])
 scores = cross_val_score(pl_log_reg_pca_2, brainwave_df, label_df, cv=10,scoring='accuracy')
-print('Accuracy for Logistic Regression with 2 Principal Components: ', scores.mean())
+
+print('Accuracy for Logistic Regression with 2 Principal Components: ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
+# Takes about 6 seconds
 #%%
 
 # Run with the top ten PC's
-
+start = time.time()
 pl_log_reg_pca_10 = Pipeline(steps=[('scaler',StandardScaler()),
                              ('pca', PCA(n_components = 10)),
                              ('log_reg', LogisticRegression(multi_class='multinomial', solver='saga', max_iter=400, tol=0.001))])
 scores = cross_val_score(pl_log_reg_pca_10, brainwave_df, label_df, cv=10,scoring='accuracy')
-print('Accuracy for Logistic Regression with 10 Principal Components: ', scores.mean())
+
+print('Accuracy for Logistic Regression with 10 Principal Components: ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
+# Takes about 6 seconds
 
 #%%
 ''' Artificial Neural Network Classifier (ANN) '''
 
+start = time.time()
 pl_mlp = Pipeline(steps=[('scaler',StandardScaler()),
                              ('mlp_ann', MLPClassifier(hidden_layer_sizes=(1275, 637)))])
 scores = cross_val_score(pl_mlp, brainwave_df, label_df, cv=10,scoring='accuracy')
-print('Accuracy for ANN : ', scores.mean())
 
+print('Accuracy for ANN : ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
 # Takes about 5 minutes
 
 ''' Hyper parameters
@@ -124,8 +151,11 @@ In our case it is 2.
 #%%
 ''' Extreme Gradient Boosting Classifier (XGBoost) '''
 
+start = time.time()
 pl_xgb = Pipeline(steps=[('xgboost', xgb.XGBClassifier(objective='multi:softmax'))])
 scores = cross_val_score(pl_xgb, brainwave_df, label_df, cv=10)
-print('Accuracy for XGBoost Classifier : ', scores.mean())
 
+print('Accuracy for XGBoost Classifier : ', round(scores.mean()*1000)/1000)
+end = time.time()
+print('Time for calculation: ', round((end - start)*100)/100, 'seconds')
 # Takes about 15 minutes
